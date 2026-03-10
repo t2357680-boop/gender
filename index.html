@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>特質分類</title>
+    <style>
+        :root {
+            --bg-color: #f5f5f5;
+            --boy-color: #bbdefb;   /* 男生區塊藍 */
+            --girl-color: #f8bbd0;  /* 女生區塊粉 */
+            --true-color: #ce93d8;  /* 彩蛋紫 */
+            --text-color: #424242;
+        }
+        
+        body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background: var(--bg-color); margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; touch-action: none; }
+        
+        /* 頂部新增字卡區 */
+        .top-bar { background: white; padding: 15px 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; z-index: 20; }
+        .title { font-size: 20px; font-weight: bold; color: var(--text-color); }
+        .add-area { display: flex; gap: 10px; }
+        .add-area input { padding: 8px 15px; border: 2px solid #ddd; border-radius: 50px; font-size: 16px; outline: none; width: 200px; transition: 0.3s; }
+        .add-area input:focus { border-color: #9e9e9e; }
+        .add-area button { background: #616161; color: white; border: none; padding: 8px 20px; border-radius: 50px; font-size: 16px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .add-area button:hover { background: #424242; }
+
+        .game-area { display: flex; flex: 1; position: relative; padding: 20px; gap: 20px; }
+        
+        /* 左右分類區 */
+        .zone { flex: 1; display: flex; flex-wrap: wrap; align-content: flex-start; justify-content: center; gap: 10px; padding: 20px; border: 3px dashed #bdbdbd; border-radius: 20px; transition: all 0.5s ease; position: relative; }
+        .zone-left { background-color: rgba(187, 222, 251, 0.3); }
+        .zone-right { background-color: rgba(248, 187, 208, 0.3); }
+        .zone-title { width: 100%; text-align: center; font-size: 28px; font-weight: bold; color: #757575; margin-bottom: 20px; pointer-events: none; transition: 0.5s; }
+        
+        /* 中間發牌區 */
+        .center-deck { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 200px; height: 120px; z-index: 10; }
+        
+        /* 卡片共用樣式 */
+        .card { background: white; border-radius: 12px; box-shadow: 0 6px 15px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; font-weight: bold; color: var(--text-color); cursor: grab; user-select: none; border: 2px solid #eee; touch-action: none; text-align: center; }
+        .card:active { cursor: grabbing; }
+        
+        /* 狀態 1：在中間牌疊時 */
+        .card.in-center { position: absolute; width: 180px; height: 100px; font-size: 26px; left: 50%; top: 50%; }
+        
+        /* 狀態 2：被分類到左右時 */
+        .card.in-left { position: relative; width: auto; height: auto; padding: 10px 20px; font-size: 20px; background-color: white; border-color: var(--boy-color); box-shadow: 2px 4px 8px rgba(187, 222, 251, 0.5); }
+        .card.in-right { position: relative; width: auto; height: auto; padding: 10px 20px; font-size: 20px; background-color: white; border-color: var(--girl-color); box-shadow: 2px 4px 8px rgba(248, 187, 208, 0.5); }
+        
+        /* 狀態 3：打破框架後的彩色自由狀態 */
+        .card.liberated { 
+            background: linear-gradient(135deg, #ce93d8, #b39ddb, #80cbc4) !important; 
+            color: white !important; 
+            border: none !important; 
+            box-shadow: 0 8px 20px rgba(206, 147, 216, 0.6) !important;
+            z-index: 100;
+        }
+
+        /* 底部完成按鈕區 */
+        .controls { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 50; }
+        .btn-finish { background: #333; color: white; border: none; padding: 15px 50px; font-size: 24px; font-weight: bold; border-radius: 50px; cursor: pointer; box-shadow: 0 6px 15px rgba(0,0,0,0.2); transition: 0.3s; display: none; }
+        .btn-finish:hover { transform: translateY(-5px) scale(1.05); background: #000; }
+        
+        /* 最終彩蛋文字 */
+        .final-message { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); font-size: 42px; font-weight: bold; color: #4a148c; text-shadow: 0 4px 10px rgba(255,255,255,0.8); opacity: 0; pointer-events: none; text-align: center; width: 100%; z-index: 0; transition: opacity 2s ease; background: rgba(255,255,255,0.7); padding: 30px; border-radius: 20px; }
+        .final-message.show { opacity: 1; z-index: 200; }
+
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <div class="title">🤔 這些特質，屬於誰？</div>
+    <div class="add-area">
+        <input type="text" id="newTraitInput" placeholder="學生有其他想法嗎？" onkeypress="handleEnter(event)">
+        <button onclick="addNewTrait()">➕ 新增</button>
+    </div>
+</div>
+
+<div class="game-area" id="gameArea">
+    <div class="zone zone-left" id="zoneBoy">
+        <div class="zone-title">男生應該...</div>
+    </div>
+    
+    <div class="center-deck" id="deck"></div>
+
+    <div class="zone zone-right" id="zoneGirl">
+        <div class="zone-title">女生應該...</div>
+    </div>
+</div>
+
+<div class="controls">
+    <button class="btn-finish" id="btnFinish" onclick="breakTheFrame()">✨ 全部分類完成 ✨</button>
+</div>
+
+<div class="final-message" id="finalMessage">
+    特質沒有顏色<br><span style="font-size: 32px; color: #7b1fa2; margin-top: 15px; display: inline-block;">只有你最真實的樣子。</span>
+</div>
+
+<script>
+    // 內建題庫：整合了你提供的三大類特質
+    const initialTraits = [
+        "堅強", "果斷", "勇敢", "冷靜", "粗心", "大方",
+        "溫柔", "細心", "體貼", "愛乾淨", "害羞", "愛哭",
+        "擅長數理", "體力好", "喜歡機械修理", "冒險精神",
+        "擅長烹飪", "喜歡照顧人", "手巧", "有藝術氣息",
+        "有責任感", "幽默感", "誠實", "愛笑", "愛尖叫", "愛漂亮", "有同理心", "固執"
+    ];
+    
+    // 為了避免一開始28張卡片疊太厚，我們把它們稍微洗牌
+    initialTraits.sort(() => Math.random() - 0.5);
+
+    const deck = document.getElementById('deck');
+    const zoneBoy = document.getElementById('zoneBoy');
+    const zoneGirl = document.getElementById('zoneGirl');
+    const btnFinish = document.getElementById('btnFinish');
+
+    // 初始化遊戲
+    initialTraits.forEach(trait => createCard(trait));
+
+    // 建立單張卡片的函數
+    function createCard(text) {
+        const card = document.createElement('div');
+        card.innerText = text;
+        resetCardToDeck(card);
+        deck.appendChild(card);
+        makeDraggable(card);
+        checkGameState();
+    }
+
+    // 新增自訂特質
+    function addNewTrait() {
+        const input = document.getElementById('newTraitInput');
+        const text = input.value.trim();
+        if (text !== "") {
+            createCard(text);
+            input.value = "";
+        }
+    }
+    
+    function handleEnter(e) {
+        if (e.key === 'Enter') addNewTrait();
+    }
+
+    // 拖曳核心邏輯 (支援滑鼠與觸控)
+    function makeDraggable(card) {
+        let isDragging = false;
+        let startX, startY, initialLeft, initialTop;
+
+        card.addEventListener('pointerdown', (e) => {
+            isDragging = true;
+            // 抓取時，先鎖定當下的絕對座標，並將卡片拉到最上層 (body) 以免被框架裁切
+            const rect = card.getBoundingClientRect();
+            document.body.appendChild(card);
+            
+            card.style.position = 'absolute';
+            card.style.left = rect.left + 'px';
+            card.style.top = rect.top + 'px';
+            card.style.transform = 'none'; // 移除旋轉效果方便拖拉
+            card.style.margin = '0';
+            card.style.zIndex = '1000';
+            
+            startX = e.clientX;
+            startY = e.clientY;
+            initialLeft = rect.left;
+            initialTop = rect.top;
+            
+            card.setPointerCapture(e.pointerId);
+            
+            // 如果原本已經完成，抓起卡片時先隱藏完成按鈕
+            btnFinish.style.display = 'none';
+        });
+
+        card.addEventListener('pointermove', (e) => {
+            if (!isDragging) return;
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            card.style.left = (initialLeft + dx) + 'px';
+            card.style.top = (initialTop + dy) + 'px';
+        });
+
+        card.addEventListener('pointerup', (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+            card.releasePointerCapture(e.pointerId);
+            card.style.zIndex = '';
+            
+            // 偵測放開時的位置 (依照螢幕寬度比例)
+            const rect = card.getBoundingClientRect();
+            const cardCenterX = rect.left + rect.width / 2;
+            const screenWidth = window.innerWidth;
+            
+            if (cardCenterX < screenWidth * 0.35) {
+                // 丟入左邊男生區
+                zoneBoy.appendChild(card);
+                card.className = 'card in-left';
+                card.style.position = 'relative';
+                card.style.left = 'auto'; card.style.top = 'auto';
+            } else if (cardCenterX > screenWidth * 0.65) {
+                // 丟入右邊女生區
+                zoneGirl.appendChild(card);
+                card.className = 'card in-right';
+                card.style.position = 'relative';
+                card.style.left = 'auto'; card.style.top = 'auto';
+            } else {
+                // 丟回中間或沒丟好
+                deck.appendChild(card);
+                resetCardToDeck(card);
+            }
+            
+            checkGameState();
+        });
+    }
+
+    // 將卡片樣式重置為中間堆疊狀態
+    function resetCardToDeck(card) {
+        card.className = 'card in-center';
+        card.style.position = 'absolute';
+        card.style.left = '50%';
+        card.style.top = '50%';
+        // 隨機微調角度與位置，產生牌堆的感覺
+        const rotate = (Math.random() - 0.5) * 15;
+        const offsetX = (Math.random() - 0.5) * 10;
+        const offsetY = (Math.random() - 0.5) * 10;
+        card.style.transform = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)) rotate(${rotate}deg)`;
+    }
+
+    // 檢查是否全部分類完畢
+    function checkGameState() {
+        // 如果中間沒牌了，且畫面上確實有牌，就顯示完成按鈕
+        const allCards = document.querySelectorAll('.card');
+        if (deck.children.length === 0 && allCards.length > 0) {
+            btnFinish.style.display = 'block';
+            btnFinish.animate([
+                { transform: 'translateX(-50%) scale(1)' },
+                { transform: 'translateX(-50%) scale(1.05)' },
+                { transform: 'translateX(-50%) scale(1)' }
+            ], { duration: 1500, iterations: Infinity });
+        } else {
+            btnFinish.style.display = 'none';
+        }
+    }
+
+    // 🌟 高潮環節：打破框架的視覺動畫 🌟
+    function breakTheFrame() {
+        // 隱藏按鈕與上方新增列
+        btnFinish.style.display = 'none';
+        document.querySelector('.top-bar').style.display = 'none';
+        
+        // 淡出並移除左右區塊的邊界與標題
+        document.querySelectorAll('.zone-title').forEach(title => title.style.opacity = '0');
+        zoneBoy.style.borderColor = 'transparent'; zoneBoy.style.backgroundColor = 'transparent';
+        zoneGirl.style.borderColor = 'transparent'; zoneGirl.style.backgroundColor = 'transparent';
+
+        // 核心動畫：將所有字卡強制切換為絕對定位，並漫天飛舞「打散」
+        const allCards = document.querySelectorAll('.card');
+        
+        allCards.forEach((card, index) => {
+            // 先記錄目前在 flexbox 裡的座標，避免瞬間跳動
+            const rect = card.getBoundingClientRect();
+            document.body.appendChild(card);
+            card.style.position = 'absolute';
+            card.style.left = rect.left + 'px';
+            card.style.top = rect.top + 'px';
+            card.style.margin = '0';
+            
+            // 加上延遲，產生一張一張炸開的波浪感
+            setTimeout(() => {
+                card.style.transition = 'all 1.2s cubic-bezier(0.25, 0.8, 0.25, 1)';
+                // 隨機發散到畫面各處 (避開正中間的文字區)
+                let randX = Math.random() * 80 + 10; // 10% ~ 90% vw
+                let randY = Math.random() * 80 + 10; // 10% ~ 90% vh
+                let randRotate = (Math.random() - 0.5) * 60; // 隨機旋轉
+                
+                card.style.left = randX + 'vw';
+                card.style.top = randY + 'vh';
+                card.style.transform = `rotate(${randRotate}deg) scale(1.1)`;
+                
+                // 套上紫色漸層自由樣式
+                card.classList.add('liberated');
+            }, index * 40); // 每 40 毫秒噴發一張
+        });
+
+        // 動畫差不多跑到尾聲時，浮現最終核心文案
+        setTimeout(() => {
+            document.getElementById('finalMessage').classList.add('show');
+        }, allCards.length * 40 + 500);
+    }
+</script>
+
+</body>
+</html>
