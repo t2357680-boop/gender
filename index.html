@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>特質分類</title>
+    <title>特質GO分類</title>
     <style>
         :root {
             --bg-color: #f5f5f5;
@@ -39,7 +39,6 @@
         .card.in-left { position: relative; width: auto; height: auto; padding: 10px 20px; font-size: 20px; background-color: white; border-color: var(--boy-color); box-shadow: 2px 4px 8px rgba(187, 222, 251, 0.5); cursor: pointer; }
         .card.in-right { position: relative; width: auto; height: auto; padding: 10px 20px; font-size: 20px; background-color: white; border-color: var(--girl-color); box-shadow: 2px 4px 8px rgba(248, 187, 208, 0.5); cursor: pointer; }
         
-        /* 🌟 新增：討論環節的聚光燈放大效果 🌟 */
         .card.highlighted {
             transform: scale(1.6) !important;
             box-shadow: 0 0 25px rgba(255, 193, 7, 0.9) !important;
@@ -48,7 +47,6 @@
             background-color: #fffde7 !important;
         }
 
-        /* 🌟 修改：打破框架後的彩色自由狀態 🌟 */
         .card.liberated { 
             color: white !important; 
             border: none !important; 
@@ -56,9 +54,10 @@
             z-index: 100;
         }
 
-        .controls { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 50; }
-        .btn-finish { background: #333; color: white; border: none; padding: 15px 50px; font-size: 24px; font-weight: bold; border-radius: 50px; cursor: pointer; box-shadow: 0 6px 15px rgba(0,0,0,0.2); transition: 0.3s; display: none; }
-        .btn-finish:hover { transform: translateY(-5px) scale(1.05); background: #000; }
+        /* 🌟 修復置中問題：改用滿版寬度搭配 flex 完美置中 🌟 */
+        .controls { position: absolute; bottom: 40px; width: 100%; display: flex; justify-content: center; align-items: center; z-index: 50; pointer-events: none; }
+        .btn-finish { pointer-events: auto; background: #333; color: white; border: none; padding: 15px 50px; font-size: 28px; font-weight: bold; border-radius: 50px; cursor: pointer; box-shadow: 0 6px 15px rgba(0,0,0,0.3); transition: 0.3s; display: none; letter-spacing: 2px; }
+        .btn-finish:hover { background: #000; }
         
         .final-message { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); font-size: 42px; font-weight: bold; color: #4a148c; text-shadow: 0 4px 10px rgba(255,255,255,0.8); opacity: 0; pointer-events: none; text-align: center; width: 100%; z-index: 0; transition: opacity 2s ease; background: rgba(255,255,255,0.7); padding: 30px; border-radius: 20px; }
         .final-message.show { opacity: 1; z-index: 200; }
@@ -88,7 +87,7 @@
 </div>
 
 <div class="controls">
-    <button class="btn-finish" id="btnFinish" onclick="breakTheFrame()">💥 打破性別框架 💥</button>
+    <button class="btn-finish" id="btnFinish" onclick="breakTheFrame()">💥💥💥 </button>
 </div>
 
 <div class="final-message" id="finalMessage">
@@ -137,14 +136,13 @@
 
     function makeDraggableAndClickable(card) {
         let isDragging = false;
-        let hasMoved = false; // 用來判斷是「點擊」還是「拖曳」
+        let hasMoved = false; 
         let startX, startY, initialLeft, initialTop;
 
         card.addEventListener('pointerdown', (e) => {
             isDragging = true;
-            hasMoved = false; // 重置移動狀態
+            hasMoved = false; 
             
-            // 如果卡片在中間牌疊，才需要做絕對定位的轉換
             if (card.classList.contains('in-center')) {
                 const rect = card.getBoundingClientRect();
                 document.body.appendChild(card);
@@ -164,7 +162,7 @@
             initialTop = rect.top;
             
             card.setPointerCapture(e.pointerId);
-            btnFinish.style.display = 'none'; // 移動時先藏起按鈕
+            btnFinish.style.display = 'none'; 
         });
 
         card.addEventListener('pointermove', (e) => {
@@ -173,15 +171,12 @@
             const dx = e.clientX - startX;
             const dy = e.clientY - startY;
             
-            // 如果移動超過 5 像素，就判定為「拖曳」而不是單純「點擊」
             if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
                 hasMoved = true;
-                // 如果原本是放大高光狀態，拖曳時取消高光
                 card.classList.remove('highlighted');
             }
             
             if (hasMoved) {
-                // 如果已經在左右區域，拖曳時也要切換為絕對定位才能拉出來
                 if (card.style.position !== 'absolute') {
                     const rect = card.getBoundingClientRect();
                     document.body.appendChild(card);
@@ -205,14 +200,12 @@
             card.releasePointerCapture(e.pointerId);
             card.style.zIndex = '';
             
-            // 🌟 如果沒有移動（代表是點擊），而且卡片已經分類好了 -> 觸發聚光燈！
             if (!hasMoved && (card.classList.contains('in-left') || card.classList.contains('in-right'))) {
                 card.classList.toggle('highlighted');
                 checkGameState();
-                return; // 結束，不執行後面的掉落邏輯
+                return; 
             }
 
-            // 拖曳放開後的掉落判定
             if (hasMoved) {
                 const rect = card.getBoundingClientRect();
                 const cardCenterX = rect.left + rect.width / 2;
@@ -253,13 +246,13 @@
         const allCards = document.querySelectorAll('.card');
         if (deck.children.length === 0 && allCards.length > 0) {
             btnFinish.style.display = 'block';
-            // 動畫讓按鈕更明顯
+            // 🌟 修復動畫：拿掉 translateX，讓它穩穩待在原地放大縮小 🌟
             if (!btnFinish.hasAttribute('data-animating')) {
                 btnFinish.setAttribute('data-animating', 'true');
                 btnFinish.animate([
-                    { transform: 'translateX(-50%) scale(1)' },
-                    { transform: 'translateX(-50%) scale(1.05)' },
-                    { transform: 'translateX(-50%) scale(1)' }
+                    { transform: 'scale(1)' },
+                    { transform: 'scale(1.1)' },
+                    { transform: 'scale(1)' }
                 ], { duration: 1500, iterations: Infinity });
             }
         } else {
@@ -267,7 +260,6 @@
         }
     }
 
-    // 🌟 多元色彩色盤：粉彩馬卡龍色系，溫和不刺眼 🌟
     const diversityColors = [
         '#FF9AA2', '#FFB7B2', '#FFDAC1', '#E2F0CB', 
         '#B5EAD7', '#C7CEEA', '#F1CBFF', '#81D4FA', '#A5D6A7'
@@ -301,7 +293,6 @@
                 card.style.top = randY + 'vh';
                 card.style.transform = `rotate(${randRotate}deg) scale(1.1)`;
                 
-                // 移除高光狀態，換上隨機的多元色彩
                 card.classList.remove('highlighted');
                 card.classList.add('liberated');
                 card.style.background = diversityColors[Math.floor(Math.random() * diversityColors.length)];
